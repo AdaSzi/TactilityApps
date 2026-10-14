@@ -9,6 +9,7 @@
 #include <lvgl/widgets/toolbar.h>
 #include <tactility/device.h>
 #include <tactility/drivers/display.h>
+#include <tactility/memory.h>
 
 #include <cmath>
 #include <cstdio>
@@ -59,8 +60,7 @@ void setStatus(Context* ctx, const char* text) {
 bool queueTracked(Context* ctx, uint32_t catalogNumber) {
     DownloadJob job;
     if (!Downloader::buildCatalogJob(catalogNumber, job) || ctx->downloader.hasQueued(DownloadKind::Tracked, job.tag)) return false;
-    ctx->downloader.enqueue(job);
-    return true;
+    return ctx->downloader.enqueue(job);
 }
 
 /** Queues the tracked satellites that have orbit data, those without it, or both. */
@@ -293,11 +293,11 @@ void handleCatalogDownload(Context* ctx, const DownloadResult& result) {
     size_t maxEntries;
     if (result.job.kind == DownloadKind::Group) {
         current = ctx->view == View::GroupList && strcmp(ctx->selectedGroup, result.job.tag) == 0;
-        maxEntries = 400;
+        maxEntries = ctx->groupLimit;
     } else {
         DownloadJob expected;
         current = ctx->view == View::Search && Downloader::buildSearchJob(ctx->searchText, expected) && strcmp(expected.tag, result.job.tag) == 0;
-        maxEntries = 100;
+        maxEntries = ctx->searchLimit;
     }
     if (!current) return;
     ctx->catalogLoading = false;
@@ -410,6 +410,26 @@ void formatClock(int64_t unixTime, char* out, size_t outSize) {
     snprintf(out, outSize, "%02d:%02d", local.tm_hour, local.tm_min);
 }
 
+void formatDay(int64_t unixTime, char* out, size_t outSize) {
+    time_t now = (time_t)currentTime();
+    time_t value = (time_t)unixTime;
+    struct tm nowTm {}, valueTm {}, tomorrowTm {};
+    localtime_r(&now, &nowTm);
+    localtime_r(&value, &valueTm);
+    // Noon today plus one day is tomorrow even on days with a daylight saving change.
+    time_t tomorrow = now + (12 - nowTm.tm_hour) * 3600 - nowTm.tm_min * 60 - nowTm.tm_sec + 24 * 3600;
+    localtime_r(&tomorrow, &tomorrowTm);
+    bool sameDay = valueTm.tm_yday == nowTm.tm_yday && valueTm.tm_year == nowTm.tm_year;
+    bool nextDay = valueTm.tm_yday == tomorrowTm.tm_yday && valueTm.tm_year == tomorrowTm.tm_year;
+    if (sameDay) {
+        if (outSize > 0) out[0] = '\0';
+    } else if (nextDay) {
+        snprintf(out, outSize, "tomorrow ");
+    } else {
+        strftime(out, outSize, "%a ", &valueTm);
+    }
+}
+
 const char* compassPoint(double azimuthDeg) {
     static const char* const POINTS[] = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
     int index = (int)((azimuthDeg + 22.5) / 45.0) & 7;
@@ -450,6 +470,11 @@ void satelliteTrackerInit(Context* ctx) {
     device_for_each_of_type(&DISPLAY_TYPE, &display, onDisplayFound);
     ctx->grayscale = display.found && display.grayscale;
     ctx->slowDisplay = display.found && display.slow;
+    // A list entry takes about 170 bytes. Without external RAM big groups would use too much of the internal heap.
+    if (memory_external_total() == 0) {
+        ctx->groupLimit = 150;
+        ctx->searchLimit = 60;
+    }
 
     settingsLoad(ctx->settings);
     if (!trackedLoad(ctx->model)) {

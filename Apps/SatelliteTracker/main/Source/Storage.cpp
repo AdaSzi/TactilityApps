@@ -154,6 +154,8 @@ bool tleFileRead(const char* path, TleList& out, size_t maxEntries) {
     out.clear();
     FILE* file = fopen(path, "r");
     if (file == nullptr) return false;
+    // One allocation of the final size, growing step by step would need the old and the new block at the same time.
+    out.reserve(maxEntries);
     char lines[3][96];
     int filled = 0;
     while (out.size() < maxEntries && fgets(lines[filled], sizeof(lines[filled]), file)) {

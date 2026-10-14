@@ -141,9 +141,12 @@ void startSearch(Context* ctx) {
         setLabelText(ctx->messageLabel, "The clock is not set yet. Connect to Wi-Fi so the time can sync.");
         return;
     }
+    if (!ctx->downloader.enqueue(job)) {
+        setLabelText(ctx->messageLabel, "Downloads are not available. Restart the app.");
+        return;
+    }
     ctx->catalog.clear();
     ctx->catalogLoading = true;
-    ctx->downloader.enqueue(job);
     catalogViewRefresh(ctx);
 }
 
@@ -270,18 +273,17 @@ void groupListViewCreate(Context* ctx) {
     bool fresh = age >= 0 && (age < GROUP_CACHE_SECONDS || !timeIsValid());
     ctx->catalogLoading = false;
     if (fresh) {
-        tleFileRead(path, ctx->catalog, 400);
+        tleFileRead(path, ctx->catalog, ctx->groupLimit);
         sortByName(ctx->catalog);
     }
     if (!fresh || ctx->catalog.empty()) {
         DownloadJob job;
-        if (timeIsValid() && Downloader::buildGroupJob(ctx->selectedGroup, job)) {
-            if (!ctx->downloader.hasQueued(DownloadKind::Group, job.tag)) {
-                ctx->downloader.enqueue(job);
-            }
+        bool queued = timeIsValid() && Downloader::buildGroupJob(ctx->selectedGroup, job) &&
+            (ctx->downloader.hasQueued(DownloadKind::Group, job.tag) || ctx->downloader.enqueue(job));
+        if (queued) {
             ctx->catalogLoading = true;
         } else if (age >= 0) {
-            tleFileRead(path, ctx->catalog, 400);
+            tleFileRead(path, ctx->catalog, ctx->groupLimit);
             sortByName(ctx->catalog);
         }
     }

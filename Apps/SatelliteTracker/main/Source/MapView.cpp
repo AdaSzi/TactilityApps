@@ -191,12 +191,8 @@ void describePass(Context* ctx, const TrackedSatellite& entry, char* out, size_t
         case orbit::PassSearchResult::Found: {
             formatClock(entry.nextPass.riseTime, rise, sizeof(rise));
             formatClock(entry.nextPass.setTime, set, sizeof(set));
-            time_t now = (time_t)currentTime();
-            time_t riseValue = (time_t)entry.nextPass.riseTime;
-            struct tm nowTm {}, riseTm {};
-            localtime_r(&now, &nowTm);
-            localtime_r(&riseValue, &riseTm);
-            const char* day = riseTm.tm_yday != nowTm.tm_yday ? "tomorrow " : "";
+            char day[16];
+            formatDay(entry.nextPass.riseTime, day, sizeof(day));
             if (compact) {
                 snprintf(out, outSize, "Pass %s%s max %.0f\xC2\xB0 %s", day, rise, entry.nextPass.maxElevationDeg, compassPoint(entry.nextPass.riseAzimuthDeg));
             } else {

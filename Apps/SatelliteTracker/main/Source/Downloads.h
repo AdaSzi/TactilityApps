@@ -39,7 +39,8 @@ public:
     bool init(TaskEventGroup* eventGroup);
     void deinit();
 
-    void enqueue(const DownloadJob& job);
+    /** Returns false when the downloader could not be initialized, the job is then dropped. */
+    bool enqueue(const DownloadJob& job);
     bool isBusy();
     bool hasQueued(DownloadKind kind, const char* tag);
 

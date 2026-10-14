@@ -78,8 +78,12 @@ struct Context {
 
     char selectedGroup[24] {};
     char selectedGroupName[40] {};
-    char searchText[40] {};
+    /** As long as a download tag, which identifies the search when its result arrives. */
+    char searchText[sizeof(DownloadJob::tag)] {};
     TleList catalog;
+    /** Entries read from a group or search result, lower on devices without external RAM. */
+    size_t groupLimit = 400;
+    size_t searchLimit = 100;
     std::vector<RowAction> rowActions;
     bool catalogLoading = false;
     int renameIndex = -1;
@@ -154,6 +158,8 @@ void setLabelText(lv_obj_t* label, const char* text);
 /** Creates a text area that detaches the on-screen keyboard before its screen is deleted. */
 lv_obj_t* createTextArea(Context* ctx, lv_obj_t* parent);
 void formatClock(int64_t unixTime, char* out, size_t outSize);
+/** Day of a time in the next days: "" for today, "tomorrow " for the next day, else the weekday ("Fri "). */
+void formatDay(int64_t unixTime, char* out, size_t outSize);
 const char* compassPoint(double azimuthDeg);
 
 void mapViewCreate(Context* ctx);

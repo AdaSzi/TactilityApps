@@ -38,7 +38,7 @@ The selected satellite has a solid frame, a satellite selected automatically has
 ### Info area
 
 - Name, catalog number, position, altitude, speed and whether the satellite is sunlit or in Earth's shadow. For a satellite without a position it says that its orbit data is still missing or can no longer be used.
-- The pass: above the horizon now (elevation, direction, set time), the next pass (start and end time, highest elevation, rise and set direction, "tomorrow" when it is on the next day), always above the horizon (geostationary satellites), no pass higher than 5 degrees in 36 hours, or "Set location in settings".
+- The pass: above the horizon now (elevation, direction, set time), the next pass (start and end time, highest elevation, rise and set direction, "tomorrow" when it is on the next day, the weekday when it is later), always above the horizon (geostationary satellites), no pass higher than 5 degrees in 36 hours, or "Set location in settings".
 - The status line: when the map was updated and how old the orbit data is, or a message while downloading or after a failed download. When the clock was moved back after a download, the age is unknown and not shown.
 
 ### Layout
@@ -94,10 +94,10 @@ The list button opens the tracked satellites.
 - **Rename:** sets the short name used in the legend (up to 15 characters). "Automatic" restores the name from the orbit data without the part in brackets (for example "ISS" for "ISS (ZARYA)"). Saving an empty name does the same. Both need the orbit data, so until it arrives "Automatic" is not offered and an empty name keeps the current one.
 - **Remove:** stops tracking the satellite. Removing all satellites leaves an empty list, the default satellites are only added on the first start.
 - **Add from group:** CelesTrak groups such as space stations, brightest, weather, NOAA, GOES, amateur radio, GPS, Galileo, GLONASS, BeiDou, science and CubeSats. Tap a satellite to add or remove it.
-  - The list is sorted by name. Large groups are cut to the first 400 satellites read and 250 shown, use the search for others.
+  - The list is sorted by name. Large groups are cut to the first 400 satellites read (150 on devices without external RAM) and 250 shown, use the search for others.
   - A group is downloaded again only when the saved copy is older than 24 hours. When that download fails, the saved copy is shown.
   - The groups are defined by CelesTrak. "Space stations", for example, also contains docked spacecraft and CubeSats launched from the ISS.
-- **Search:** type a name (or part of it, for example "NOAA") or a NORAD catalog number. Up to 100 results, sorted by name.
+- **Search:** type a name (or part of it, for example "NOAA") or a NORAD catalog number, up to 31 characters. Up to 100 results (60 on devices without external RAM), sorted by name.
 
 How many satellites can be tracked depends on the screen: twice the number of legend columns below the map, or the number of legend rows next to the map, up to 12 (6 on a 320 pixel wide screen). A list saved with more satellites (for example on a bigger screen) is kept, but no more can be added until some are removed.
 

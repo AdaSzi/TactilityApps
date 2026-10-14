@@ -54,12 +54,13 @@ void Downloader::deinit() {
     }
 }
 
-void Downloader::enqueue(const DownloadJob& job) {
-    if (mutex == nullptr) return;
+bool Downloader::enqueue(const DownloadJob& job) {
+    if (mutex == nullptr) return false;
     xSemaphoreTake(mutex, portMAX_DELAY);
     queue.push_back(job);
     xSemaphoreGive(mutex);
     task_event_group_signal(group, wakeBit);
+    return true;
 }
 
 bool Downloader::isBusy() {
@@ -161,18 +162,23 @@ bool Downloader::buildSearchJob(const char* text, DownloadJob& out) {
     out.kind = DownloadKind::Search;
     while (*text == ' ') text++;
     if (*text == '\0') return false;
-    snprintf(out.tag, sizeof(out.tag), "%s", text);
+    // The tag identifies the search when its result arrives, so the URL is built from the tag and both describe the same text.
+    if (snprintf(out.tag, sizeof(out.tag), "%s", text) >= (int)sizeof(out.tag)) return false;
 
     bool numeric = true;
-    for (const char* p = text; *p; p++) {
+    for (const char* p = out.tag; *p; p++) {
         if (!isdigit((unsigned char)*p)) numeric = false;
     }
+    constexpr const char* SUFFIX = "&FORMAT=tle";
     int written;
     if (numeric) {
-        written = snprintf(out.url, sizeof(out.url), "%s?CATNR=%s&FORMAT=tle", BASE_URL, text);
+        written = snprintf(out.url, sizeof(out.url), "%s?CATNR=%s%s", BASE_URL, out.tag, SUFFIX);
     } else {
         written = snprintf(out.url, sizeof(out.url), "%s?NAME=", BASE_URL);
-        for (const char* p = text; *p && written < (int)sizeof(out.url) - 16; p++) {
+        int reserved = (int)strlen(SUFFIX) + 1;
+        for (const char* p = out.tag; *p; p++) {
+            // An encoded character takes up to 3 bytes.
+            if (written + 3 + reserved > (int)sizeof(out.url)) return false;
             unsigned char c = (unsigned char)*p;
             if (isalnum(c) || c == '-' || c == '.' || c == '_') {
                 out.url[written++] = (char)c;
@@ -180,8 +186,7 @@ bool Downloader::buildSearchJob(const char* text, DownloadJob& out) {
                 written += snprintf(out.url + written, sizeof(out.url) - written, "%%%02X", c);
             }
         }
-        out.url[written] = '\0';
-        written += snprintf(out.url + written, sizeof(out.url) - written, "&FORMAT=tle");
+        written += snprintf(out.url + written, sizeof(out.url) - written, "%s", SUFFIX);
     }
     if (written >= (int)sizeof(out.url)) return false;
     return userFile("search.tle", out.target, sizeof(out.target));

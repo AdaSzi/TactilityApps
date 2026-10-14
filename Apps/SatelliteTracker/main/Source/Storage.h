@@ -45,7 +45,7 @@ void trackedListSave(const TrackerModel& model);
 /** Writes the orbit data of the tracked satellites that have it. */
 void orbitCacheSave(const TrackerModel& model);
 
-/** Reads a CelesTrak TLE file (name line plus two element lines). Stops after maxEntries. */
+/** Reads a CelesTrak TLE file (name line plus two element lines). Stops after maxEntries, which is also reserved up front. */
 bool tleFileRead(const char* path, TleList& out, size_t maxEntries);
 
 void sortByName(TleList& list);
