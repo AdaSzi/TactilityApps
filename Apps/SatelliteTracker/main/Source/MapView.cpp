@@ -98,6 +98,15 @@ void onLegendClicked(lv_event_t* event) {
     toggleFocus(click->ctx, click->index);
 }
 
+/** A satellite with orbit data has no pass result yet, the search runs in the background. */
+bool passSearchPending(const Context* ctx) {
+    for (int i = 0; i < ctx->model.count(); i++) {
+        const TrackedSatellite& entry = ctx->model.at(i);
+        if (entry.hasOrbit && !entry.passKnown) return true;
+    }
+    return false;
+}
+
 /** The tracked satellite whose pass is in progress or starts first. */
 int pickNextPass(Context* ctx) {
     if (!ctx->model.hasObserver()) return -1;
@@ -176,7 +185,7 @@ void describePass(Context* ctx, const TrackedSatellite& entry, char* out, size_t
         return;
     }
     char rise[8], set[8];
-    bool passInProgress = entry.passResult == orbit::PassSearchResult::Found && entry.nextPass.riseTime <= currentTime();
+    bool passInProgress = entry.passKnown && entry.passResult == orbit::PassSearchResult::Found && entry.nextPass.riseTime <= currentTime();
     if (entry.look.elevationDeg > 0.0 && passInProgress) {
         formatClock(entry.nextPass.setTime, set, sizeof(set));
         if (compact) {
@@ -530,6 +539,8 @@ void mapViewUpdate(Context* ctx, bool force) {
         } else if (!ctx->model.hasObserver()) {
             hint = w.detailed ? "No satellite selected. Set your location in the settings to select the next pass automatically."
                           : "Set location for automatic selection";
+        } else if (passSearchPending(ctx)) {
+            hint = "Finding the next pass...";
         } else {
             hint = w.detailed ? "No satellite selected and no pass higher than 5° in the next 36 hours." : "No pass in 36 h";
         }
